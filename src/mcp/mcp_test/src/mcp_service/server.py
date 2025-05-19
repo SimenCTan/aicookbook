@@ -20,7 +20,7 @@ async def websocket_endpoint(ws: WebSocket):
             message = json.loads(await ws.receive_text())
             resp = {"jsonrpc": "2.0", "id": message.get("id")}
 
-            if message.get("method") == "echo":
+            if message.get("method") == "test":
                 resp["result"] = message.get("params", {})
             else:
                 resp["error"] = {"code": -32601, "message": "method not found"}

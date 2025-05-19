@@ -6,7 +6,7 @@ async def run():
     async with websockets.connect(URL) as ws:
         print("Handshake:", await ws.recv())             # session_id
         req = {"jsonrpc": "2.0", "id": str(uuid.uuid4()),
-               "method": "echo", "params": {"msg": "Hello, MCP!"}}
+               "method": "test", "params": {"msg": "Hello, MCP!"}}
         await ws.send(json.dumps(req))
         print("Response :", await ws.recv())
 
