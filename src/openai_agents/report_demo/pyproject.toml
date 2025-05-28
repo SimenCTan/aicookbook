@@ -1,0 +1,23 @@
+[project]
+name = "planner-report"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "simen", email = "code@arencore.me" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "evals>=3.0.1.post1",
+    "openai-agents>=0.0.16",
+    "pydantic>=2.11.5",
+    "pytest>=8.3.5",
+    "python-dotenv>=1.1.0",
+]
+
+[project.scripts]
+planner-report = "planner_report:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
