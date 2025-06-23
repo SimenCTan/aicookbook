@@ -3,6 +3,7 @@ from .context import UserContext
 from .writer_agent import writer_agent
 from .tools import web_search
 
+
 def planner_prompt(wrap, _):
     return f"""
 # 研究规划智能体 (LLM 自主决策)
@@ -21,6 +22,7 @@ def planner_prompt(wrap, _):
 5. Writer 返回 Markdown 后直接回复用户
 禁止泄漏内部思考 / JSON。
 """
+
 
 planner_agent = Agent[UserContext](
     name="Planner",

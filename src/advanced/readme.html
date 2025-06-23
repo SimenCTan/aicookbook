@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python高级开发技能思维导图</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a2332;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+
+        #mindmap {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .node circle {
+            cursor: pointer;
+        }
+
+        .node text {
+            font-size: 14px;
+            fill: #fff;
+            text-anchor: middle;
+            pointer-events: none;
+        }
+
+        .link {
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            padding: 8px;
+            font-size: 12px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 4px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="mindmap"></div>
+    <div class="tooltip"></div>
+
+    <script>
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        const svg = d3.select("#mindmap")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        const g = svg.append("g");
+
+        // 数据结构
+        const data = {
+            name: "Python高级开发",
+            color: "#fff",
+            children: [
+                {
+                    name: "语言特性",
+                    color: "#4fc3f7",
+                    children: [
+                        {
+                            name: "元编程",
+                            color: "#4fc3f7",
+                            children: [
+                                { name: "装饰器进阶", color: "#81c784" },
+                                { name: "元类应用", color: "#81c784" },
+                                { name: "描述符协议", color: "#81c784" }
+                            ]
+                        },
+                        {
+                            name: "高级数据结构",
+                            color: "#4fc3f7",
+                            children: [
+                                { name: "生成器与协程", color: "#81c784" },
+                                { name: "上下文管理器", color: "#81c784" },
+                                { name: "自定义迭代器", color: "#81c784" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: "并发编程",
+                    color: "#ff9800",
+                    children: [
+                        {
+                            name: "多线程",
+                            color: "#ff9800",
+                            children: [
+                                { name: "GIL机制理解", color: "#ffd54f" },
+                                { name: "线程同步", color: "#ffd54f" },
+                                { name: "线程池应用", color: "#ffd54f" }
+                            ]
+                        },
+                        {
+                            name: "异步编程",
+                            color: "#ff9800",
+                            children: [
+                                { name: "asyncio框架", color: "#ffd54f" },
+                                { name: "async/await", color: "#ffd54f" },
+                                { name: "并发任务管理", color: "#ffd54f" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: "性能优化",
+                    color: "#e91e63",
+                    children: [
+                        {
+                            name: "分析工具",
+                            color: "#e91e63",
+                            children: [
+                                { name: "cProfile使用", color: "#f48fb1" },
+                                { name: "内存分析", color: "#f48fb1" },
+                                { name: "性能瓶颈定位", color: "#f48fb1" }
+                            ]
+                        },
+                        {
+                            name: "优化技术",
+                            color: "#e91e63",
+                            children: [
+                                { name: "算法优化", color: "#f48fb1" },
+                                { name: "缓存策略", color: "#f48fb1" },
+                                { name: "C扩展开发", color: "#f48fb1" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: "Web开发",
+                    color: "#4caf50",
+                    children: [
+                        {
+                            name: "框架进阶",
+                            color: "#4caf50",
+                            children: [
+                                { name: "Django ORM优化", color: "#81c784" },
+                                { name: "FastAPI异步", color: "#81c784" },
+                                { name: "中间件开发", color: "#81c784" }
+                            ]
+                        },
+                        {
+                            name: "微服务架构",
+                            color: "#4caf50",
+                            children: [
+                                { name: "服务拆分", color: "#81c784" },
+                                { name: "API网关", color: "#81c784" },
+                                { name: "分布式追踪", color: "#81c784" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: "数据工程",
+                    color: "#9c27b0",
+                    children: [
+                        {
+                            name: "数据库优化",
+                            color: "#9c27b0",
+                            children: [
+                                { name: "SQL调优", color: "#ba68c8" },
+                                { name: "索引设计", color: "#ba68c8" },
+                                { name: "连接池管理", color: "#ba68c8" }
+                            ]
+                        },
+                        {
+                            name: "大数据处理",
+                            color: "#9c27b0",
+                            children: [
+                                { name: "Spark应用", color: "#ba68c8" },
+                                { name: "流处理框架", color: "#ba68c8" },
+                                { name: "数据管道设计", color: "#ba68c8" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: "工程实践",
+                    color: "#00bcd4",
+                    children: [
+                        {
+                            name: "设计模式",
+                            color: "#00bcd4",
+                            children: [
+                                { name: "创建型模式", color: "#4dd0e1" },
+                                { name: "结构型模式", color: "#4dd0e1" },
+                                { name: "行为型模式", color: "#4dd0e1" }
+                            ]
+                        },
+                        {
+                            name: "测试策略",
+                            color: "#00bcd4",
+                            children: [
+                                { name: "单元测试进阶", color: "#4dd0e1" },
+                                { name: "集成测试", color: "#4dd0e1" },
+                                { name: "TDD实践", color: "#4dd0e1" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: "DevOps",
+                    color: "#ff5722",
+                    children: [
+                        {
+                            name: "容器化",
+                            color: "#ff5722",
+                            children: [
+                                { name: "Docker最佳实践", color: "#ff8a65" },
+                                { name: "K8s部署", color: "#ff8a65" },
+                                { name: "容器编排", color: "#ff8a65" }
+                            ]
+                        },
+                        {
+                            name: "CI/CD",
+                            color: "#ff5722",
+                            children: [
+                                { name: "自动化测试", color: "#ff8a65" },
+                                { name: "部署策略", color: "#ff8a65" },
+                                { name: "监控告警", color: "#ff8a65" }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // 创建树布局
+        const treeLayout = d3.tree()
+            .size([2 * Math.PI, Math.min(width, height) / 2 - 100])
+            .separation((a, b) => (a.parent == b.parent ? 1 : 2) / a.depth);
+
+        const root = d3.hierarchy(data);
+        treeLayout(root);
+
+        // 创建链接
+        const link = g.selectAll(".link")
+            .data(root.links())
+            .enter().append("path")
+            .attr("class", "link")
+            .attr("d", d3.linkRadial()
+                .angle(d => d.x)
+                .radius(d => d.y))
+            .style("stroke", d => d.target.data.color || "#999");
+
+        // 创建节点
+        const node = g.selectAll(".node")
+            .data(root.descendants())
+            .enter().append("g")
+            .attr("class", "node")
+            .attr("transform", d => `
+                rotate(${d.x * 180 / Math.PI - 90})
+                translate(${d.y},0)
+            `);
+
+        // 添加圆形
+        node.append("circle")
+            .attr("r", d => d.depth === 0 ? 30 : (d.children ? 20 : 10))
+            .style("fill", d => d.data.color || "#999")
+            .style("opacity", 0.9);
+
+        // 添加文本
+        node.append("text")
+            .attr("dy", ".31em")
+            .attr("x", d => d.x < Math.PI === !d.children ? 30 : -30)
+            .attr("text-anchor", d => d.x < Math.PI === !d.children ? "start" : "end")
+            .attr("transform", d => d.x >= Math.PI ? "rotate(180)" : null)
+            .text(d => d.data.name)
+            .style("font-size", d => d.depth === 0 ? "16px" : "14px");
+
+        // 居中显示
+        g.attr("transform", `translate(${width / 2},${height / 2})`);
+
+        // 添加缩放功能
+        const zoom = d3.zoom()
+            .scaleExtent([0.5, 3])
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
+            });
+
+        svg.call(zoom);
+
+        // 添加交互
+        const tooltip = d3.select(".tooltip");
+
+        node.on("mouseover", function (event, d) {
+            if (d.depth > 0) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                tooltip.html(d.data.name)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            }
+        })
+            .on("mouseout", function (d) {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            });
+
+        // 初始缩放
+        svg.call(zoom.transform, d3.zoomIdentity.scale(0.8));
+    </script>
+</body>
+
+</html>
