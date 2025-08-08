@@ -28,13 +28,9 @@ from mineru.backend.vlm.vlm_middle_json_mkcontent import union_make as vlm_union
 
 def do_parse(
     output_dir,  # Output directory for storing parsing results
-    pdf_file_names: list[str],  # List of PDF file names to be parsed
-    pdf_bytes_list: list[bytes],  # List of PDF bytes to be parsed
-    p_lang_list: list[str],  # List of languages for each PDF, default is 'ch' (Chinese)
-    backend="pipeline",  # The backend for parsing PDF, default is 'pipeline'
-    parse_method="auto",  # The method for parsing PDF, default is 'auto'
-    formula_enable=True,  # Enable formula parsing
-    table_enable=True,  # Enable table parsing
+    pdf_file_name: str,  # Single PDF file name to be parsed
+    pdf_bytes: bytes,  # Single PDF bytes to be parsed
+    backend="vlm-sglang-client",  # The backend for parsing PDF, default is 'pipeline'
     server_url=None,  # Server URL for vlm-sglang-client backend
     f_draw_layout_bbox=True,  # Whether to draw layout bounding boxes
     f_draw_span_bbox=True,  # Whether to draw span bounding boxes
@@ -53,72 +49,67 @@ def do_parse(
 
     f_draw_span_bbox = False
     parse_method = "vlm"
-    for idx, pdf_bytes in enumerate(pdf_bytes_list):
-        pdf_file_name = pdf_file_names[idx]
-        pdf_bytes = convert_pdf_bytes_to_bytes_by_pypdfium2(
-            pdf_bytes, start_page_id, end_page_id
+
+    pdf_bytes = convert_pdf_bytes_to_bytes_by_pypdfium2(
+        pdf_bytes, start_page_id, end_page_id
+    )
+    local_image_dir, local_md_dir = prepare_env(output_dir, pdf_file_name, parse_method)
+    image_writer, md_writer = FileBasedDataWriter(local_image_dir), FileBasedDataWriter(
+        local_md_dir
+    )
+    middle_json, infer_result = vlm_doc_analyze(
+        pdf_bytes,
+        image_writer=image_writer,
+        backend=backend,
+        server_url=server_url,
+    )
+
+    pdf_info = middle_json["pdf_info"]
+
+    if f_draw_layout_bbox:
+        draw_layout_bbox(
+            pdf_info, pdf_bytes, local_md_dir, f"{pdf_file_name}_layout.pdf"
         )
-        local_image_dir, local_md_dir = prepare_env(
-            output_dir, pdf_file_name, parse_method
-        )
-        image_writer, md_writer = FileBasedDataWriter(
-            local_image_dir
-        ), FileBasedDataWriter(local_md_dir)
-        middle_json, infer_result = vlm_doc_analyze(
+
+    if f_draw_span_bbox:
+        draw_span_bbox(pdf_info, pdf_bytes, local_md_dir, f"{pdf_file_name}_span.pdf")
+
+    if f_dump_orig_pdf:
+        md_writer.write(
+            f"{pdf_file_name}_origin.pdf",
             pdf_bytes,
-            image_writer=image_writer,
-            backend=backend,
-            server_url=server_url,
         )
 
-        pdf_info = middle_json["pdf_info"]
+    if f_dump_md:
+        image_dir = str(os.path.basename(local_image_dir))
+        md_content_str = vlm_union_make(pdf_info, f_make_md_mode, image_dir)
+        md_writer.write_string(
+            f"{pdf_file_name}.md",
+            md_content_str,
+        )
 
-        if f_draw_layout_bbox:
-            draw_layout_bbox(
-                pdf_info, pdf_bytes, local_md_dir, f"{pdf_file_name}_layout.pdf"
-            )
+    if f_dump_content_list:
+        image_dir = str(os.path.basename(local_image_dir))
+        content_list = vlm_union_make(pdf_info, MakeMode.CONTENT_LIST, image_dir)
+        md_writer.write_string(
+            f"{pdf_file_name}_content_list.json",
+            json.dumps(content_list, ensure_ascii=False, indent=4),
+        )
 
-        if f_draw_span_bbox:
-            draw_span_bbox(
-                pdf_info, pdf_bytes, local_md_dir, f"{pdf_file_name}_span.pdf"
-            )
+    if f_dump_middle_json:
+        md_writer.write_string(
+            f"{pdf_file_name}_middle.json",
+            json.dumps(middle_json, ensure_ascii=False, indent=4),
+        )
 
-        if f_dump_orig_pdf:
-            md_writer.write(
-                f"{pdf_file_name}_origin.pdf",
-                pdf_bytes,
-            )
+    if f_dump_model_output:
+        model_output = ("\n" + "-" * 50 + "\n").join(infer_result)
+        md_writer.write_string(
+            f"{pdf_file_name}_model_output.txt",
+            model_output,
+        )
 
-        if f_dump_md:
-            image_dir = str(os.path.basename(local_image_dir))
-            md_content_str = vlm_union_make(pdf_info, f_make_md_mode, image_dir)
-            md_writer.write_string(
-                f"{pdf_file_name}.md",
-                md_content_str,
-            )
-
-        if f_dump_content_list:
-            image_dir = str(os.path.basename(local_image_dir))
-            content_list = vlm_union_make(pdf_info, MakeMode.CONTENT_LIST, image_dir)
-            md_writer.write_string(
-                f"{pdf_file_name}_content_list.json",
-                json.dumps(content_list, ensure_ascii=False, indent=4),
-            )
-
-        if f_dump_middle_json:
-            md_writer.write_string(
-                f"{pdf_file_name}_middle.json",
-                json.dumps(middle_json, ensure_ascii=False, indent=4),
-            )
-
-        if f_dump_model_output:
-            model_output = ("\n" + "-" * 50 + "\n").join(infer_result)
-            md_writer.write_string(
-                f"{pdf_file_name}_model_output.txt",
-                model_output,
-            )
-
-        logger.info(f"local output dir is {local_md_dir}")
+    logger.info(f"local output dir is {local_md_dir}")
 
 
 def parse_doc(
@@ -155,26 +146,18 @@ def parse_doc(
     end_page_id: End page ID for parsing, default is None (parse all pages until the end of the document)
     """
     try:
-        file_name_list = []
-        pdf_bytes_list = []
-        lang_list = []
         for path in path_list:
             file_name = str(Path(path).stem)
             pdf_bytes = read_fn(path)
-            file_name_list.append(file_name)
-            pdf_bytes_list.append(pdf_bytes)
-            lang_list.append(lang)
-        do_parse(
-            output_dir=output_dir,
-            pdf_file_names=file_name_list,
-            pdf_bytes_list=pdf_bytes_list,
-            p_lang_list=lang_list,
-            backend=backend,
-            parse_method=method,
-            server_url=server_url,
-            start_page_id=start_page_id,
-            end_page_id=end_page_id,
-        )
+            do_parse(
+                output_dir=output_dir,
+                pdf_file_name=file_name,
+                pdf_bytes=pdf_bytes,
+                backend=backend,
+                server_url=server_url,
+                start_page_id=start_page_id,
+                end_page_id=end_page_id,
+            )
     except Exception as e:
         logger.exception(e)
 

@@ -182,3 +182,4 @@ cython_debug/
 
 output/
 pdfs/
+.DS_Store
