@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 # API 配置
 load_dotenv()
 EMBEDDING_API_URL = os.getenv("EMBEDDING_API_URL")
+REANK_API_URL = os.getenv("REANK_API_URL")
 EMBEDDING_API_KEY = os.getenv("EMBEDDING_API_KEY")
 
 
@@ -103,7 +104,7 @@ def test_rerank():
         ],
     }
 
-    response = requests.post(f"{EMBEDDING_API_URL}/rerank", headers=headers, json=data)
+    response = requests.post(f"{REANK_API_URL}/rerank", headers=headers, json=data)
 
     if response.status_code == 200:
         result = response.json()
@@ -179,7 +180,7 @@ def main() -> None:
 
     all_passed &= test_models()
     all_passed &= test_embedding()
-    # test_rerank()  # 可选测试
+    test_rerank()  # 可选测试
 
     # 询问是否运行基准测试
     response = input("\n是否运行性能基准测试? (y/n): ")
