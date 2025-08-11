@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 
+import asyncio
 from dotenv import load_dotenv
 from loguru import logger
 
@@ -26,7 +27,7 @@ from mineru.backend.vlm.vlm_middle_json_mkcontent import union_make as vlm_union
 # ///
 
 
-def do_parse(
+async def do_parse(
     output_dir,  # Output directory for storing parsing results
     pdf_file_name: str,  # Single PDF file name to be parsed
     pdf_bytes: bytes,  # Single PDF bytes to be parsed
@@ -50,61 +51,84 @@ def do_parse(
     f_draw_span_bbox = False
     parse_method = "vlm"
 
-    pdf_bytes = convert_pdf_bytes_to_bytes_by_pypdfium2(
-        pdf_bytes, start_page_id, end_page_id
+    pdf_bytes = await asyncio.to_thread(
+        convert_pdf_bytes_to_bytes_by_pypdfium2, pdf_bytes, start_page_id, end_page_id
     )
-    local_image_dir, local_md_dir = prepare_env(output_dir, pdf_file_name, parse_method)
+    local_image_dir, local_md_dir = await asyncio.to_thread(
+        prepare_env, output_dir, pdf_file_name, parse_method
+    )
     image_writer, md_writer = FileBasedDataWriter(local_image_dir), FileBasedDataWriter(
         local_md_dir
     )
-    middle_json, infer_result = vlm_doc_analyze(
-        pdf_bytes,
-        image_writer=image_writer,
-        backend=backend,
-        server_url=server_url,
+    middle_json, infer_result = await asyncio.to_thread(
+        lambda: vlm_doc_analyze(
+            pdf_bytes,
+            image_writer=image_writer,
+            backend=backend,
+            server_url=server_url,
+        )
     )
 
     pdf_info = middle_json["pdf_info"]
 
     if f_draw_layout_bbox:
-        draw_layout_bbox(
-            pdf_info, pdf_bytes, local_md_dir, f"{pdf_file_name}_layout.pdf"
+        await asyncio.to_thread(
+            draw_layout_bbox,
+            pdf_info,
+            pdf_bytes,
+            local_md_dir,
+            f"{pdf_file_name}_layout.pdf",
         )
 
     if f_draw_span_bbox:
-        draw_span_bbox(pdf_info, pdf_bytes, local_md_dir, f"{pdf_file_name}_span.pdf")
+        await asyncio.to_thread(
+            draw_span_bbox,
+            pdf_info,
+            pdf_bytes,
+            local_md_dir,
+            f"{pdf_file_name}_span.pdf",
+        )
 
     if f_dump_orig_pdf:
-        md_writer.write(
+        await asyncio.to_thread(
+            md_writer.write,
             f"{pdf_file_name}_origin.pdf",
             pdf_bytes,
         )
 
     if f_dump_md:
         image_dir = str(os.path.basename(local_image_dir))
-        md_content_str = vlm_union_make(pdf_info, f_make_md_mode, image_dir)
-        md_writer.write_string(
+        md_content_str = await asyncio.to_thread(
+            vlm_union_make, pdf_info, f_make_md_mode, image_dir
+        )
+        await asyncio.to_thread(
+            md_writer.write_string,
             f"{pdf_file_name}.md",
             md_content_str,
         )
 
     if f_dump_content_list:
         image_dir = str(os.path.basename(local_image_dir))
-        content_list = vlm_union_make(pdf_info, MakeMode.CONTENT_LIST, image_dir)
-        md_writer.write_string(
+        content_list = await asyncio.to_thread(
+            vlm_union_make, pdf_info, MakeMode.CONTENT_LIST, image_dir
+        )
+        await asyncio.to_thread(
+            md_writer.write_string,
             f"{pdf_file_name}_content_list.json",
             json.dumps(content_list, ensure_ascii=False, indent=4),
         )
 
     if f_dump_middle_json:
-        md_writer.write_string(
+        await asyncio.to_thread(
+            md_writer.write_string,
             f"{pdf_file_name}_middle.json",
             json.dumps(middle_json, ensure_ascii=False, indent=4),
         )
 
     if f_dump_model_output:
         model_output = ("\n" + "-" * 50 + "\n").join(infer_result)
-        md_writer.write_string(
+        await asyncio.to_thread(
+            md_writer.write_string,
             f"{pdf_file_name}_model_output.txt",
             model_output,
         )
@@ -112,12 +136,10 @@ def do_parse(
     logger.info(f"local output dir is {local_md_dir}")
 
 
-def parse_doc(
+async def parse_doc(
     path_list: list[Path],
     output_dir,
-    lang="ch",
-    backend="pipeline",
-    method="auto",
+    backend="vlm-sglang-client",
     server_url=None,
     start_page_id=0,
     end_page_id=None,
@@ -148,8 +170,8 @@ def parse_doc(
     try:
         for path in path_list:
             file_name = str(Path(path).stem)
-            pdf_bytes = read_fn(path)
-            do_parse(
+            pdf_bytes = await asyncio.to_thread(read_fn, path)
+            await do_parse(
                 output_dir=output_dir,
                 pdf_file_name=file_name,
                 pdf_bytes=pdf_bytes,
@@ -181,11 +203,13 @@ if __name__ == "__main__":
     for doc_path in Path(pdf_files_dir).glob("*"):
         if doc_path.suffix in pdf_suffixes + image_suffixes:
             doc_path_list.append(doc_path)
-    parse_doc(
-        doc_path_list,
-        output_dir,
-        backend="vlm-sglang-client",
-        server_url=server_url,
+    asyncio.run(
+        parse_doc(
+            doc_path_list,
+            output_dir,
+            backend="vlm-sglang-client",
+            server_url=server_url,
+        )
     )
 
     """To enable VLM mode, change the backend to 'vlm-xxx'"""
