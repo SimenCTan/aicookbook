@@ -77,6 +77,7 @@ def test_embedding():
         print(f"✓ 嵌入生成成功")
         print(f"  - 生成 {len(result['data'])} 个嵌入")
         print(f"  - 维度: {len(result['data'][0]['embedding'])}")
+        # print(f"  - 结果: {result['data'][0]['embedding']}")
         print(f"  - 耗时: {elapsed_time:.2f} 秒")
         print(f"  - Token 使用: {result.get('usage', {})}")
         return True
