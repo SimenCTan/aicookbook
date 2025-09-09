@@ -78,7 +78,7 @@ def get_bulk_eod_prices(
 
 if __name__ == "__main__":
     # --- 在这里修改为您想查询的参数 ---
-    TARGET_DATE = "2025-08-29"  # 您想查询的日期
+    TARGET_DATE = "2025-01-27"  # 您想查询的日期
     EXCHANGE_CODE = "US"  # 目标交易所 (US 包括 NYSE, NASDAQ 等)
     SYMBOLS_TO_GET = [  # 您想查询的股票代码列表
         "AAPL.US",

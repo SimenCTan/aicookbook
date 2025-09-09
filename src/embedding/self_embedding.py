@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 # API 配置
 load_dotenv()
 EMBEDDING_API_URL = os.getenv("EMBEDDING_API_URL")
+EMBEDDING_API_URL_IMAGE = os.getenv("EMBEDDING_API_URL_IMAGE")
 REANK_API_URL = os.getenv("REANK_API_URL")
 EMBEDDING_API_KEY = os.getenv("EMBEDDING_API_KEY")
 
@@ -83,6 +84,46 @@ def test_embedding():
         return True
     else:
         print(f"✗ 嵌入生成失败: {response.status_code}")
+        print(f"  错误: {response.text}")
+        return False
+
+
+def test_image_embedding():
+    """测试图片嵌入生成"""
+    print("\n测试图片嵌入生成...")
+
+    headers = {"Content-Type": "application/json"}
+    if EMBEDDING_API_KEY:
+        headers["Authorization"] = f"Bearer {EMBEDDING_API_KEY}"
+
+    data = {
+        "model": "google/siglip-so400m-patch14-384",
+        "encoding_format": "base64",
+        "input": [
+            "http://images.cocodataset.org/val2017/000000039769.jpg",
+        ],
+        "modality": "image",
+    }
+
+    start_time = time.time()
+    response = requests.post(
+        f"{EMBEDDING_API_URL_IMAGE}/embeddings", headers=headers, json=data
+    )
+    elapsed_time = time.time() - start_time
+
+    if response.status_code == 200:
+        result = response.json()
+        print("✓ 图片嵌入生成成功")
+        embedding_value = result["data"][0]["embedding"]
+        if isinstance(embedding_value, list):
+            print(f"  - 维度: {len(embedding_value)}")
+        else:
+            print(f"  - 返回编码: base64 字符串, 长度 {len(embedding_value)}")
+        print(f"  - 耗时: {elapsed_time:.2f} 秒")
+        print(f"  - Token 使用: {result.get('usage', {})}")
+        return True
+    else:
+        print(f"✗ 图片嵌入生成失败: {response.status_code}")
         print(f"  错误: {response.text}")
         return False
 
@@ -181,6 +222,7 @@ def main() -> None:
 
     all_passed &= test_models()
     all_passed &= test_embedding()
+    all_passed &= test_image_embedding()
     test_rerank()  # 可选测试
 
     # 询问是否运行基准测试
